@@ -1,17 +1,18 @@
 const { validationResult } = require('express-validator/check');
-
+const mongoose = require('mongoose');
 const Quiz = require('../models/m_quiz');
 const User = require('../models/m_user');
+const Result = require('../models/m_result');
 
-exports.getPosts = async (req, res, next) => {
+exports.getquizzes = async (req, res, next) => {
   try {
-    const posts = await Post.find().populate({
-      path: 'author',
-      select: '-password',
+    const quizzes = await Quiz.find().populate({
+      path: 'teacher',
+      select: 'name',
     });
     res.status(200).json({
-      message: 'Fetched posts successfully.',
-      posts: posts,
+      message: 'Fetched quizzes successfully.',
+      quiz: quizzes,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -29,16 +30,8 @@ exports.createQuiz = async (req, res, next) => {
     throw error;
   }
 
-  const {
-    title,
-    questions,
-    totalMark,
-    status,
-    startTime,
-    endTime,
-    duration,
-    // teacher,
-  } = req.body;
+  const { title, questions, totalMark, status, startTime, endTime, duration } =
+    req.body;
 
   const quiz = new Quiz({
     title,
@@ -48,7 +41,7 @@ exports.createQuiz = async (req, res, next) => {
     startTime,
     endTime,
     duration,
-    teacher: '12341234',
+    teacher: req.userId,
   });
 
   try {
@@ -65,16 +58,17 @@ exports.createQuiz = async (req, res, next) => {
   }
 };
 
-exports.getPost = async (req, res, next) => {
-  const postId = req.params.postId;
+exports.getQuiz = async (req, res, next) => {
+  const quizId = req.params.quizId;
+  console.log(quizId);
   try {
-    const post = await Post.findById(postId);
-    if (!post) {
-      const error = new Error('Could not find post.');
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) {
+      const error = new Error('Could not find quiz.');
       error.statusCode = 404;
       throw error;
     }
-    res.status(200).json({ message: 'Post fetched.', post: post });
+    res.status(200).json({ message: 'Quiz fetched.', quiz: quiz });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -83,8 +77,9 @@ exports.getPost = async (req, res, next) => {
   }
 };
 
-exports.updatePost = async (req, res, next) => {
-  const postId = req.params.postId;
+exports.updateQuiz = async (req, res, next) => {
+  const quizId = req.params.quizId;
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error('Validation failed, entered data is incorrect.');
@@ -92,34 +87,45 @@ exports.updatePost = async (req, res, next) => {
     throw error;
   }
 
-  const { title, excerpt, content, featuredImageUrl, category } = req.body;
+  const { title, questions, totalMark, status, startTime, endTime, duration } =
+    req.body;
 
   try {
-    const post = await Post.findById(postId);
+    const fetchedQuiz = await Quiz.findById(quizId);
 
-    if (!post) {
-      const error = new Error('Could not find post.');
+    if (!fetchedQuiz) {
+      const error = new Error('Could not find the quiz.');
       error.statusCode = 404;
       throw error;
     }
 
-    // checking post author
-    if (post.author.toString() !== req.userId) {
+    // checking quiz teacher
+    if (fetchedQuiz.teacher.toString() !== req.userId) {
       const error = new Error('Not authorized!');
       error.statusCode = 403;
       throw error;
     }
 
-    // Updating post
-    post.title = title;
-    post.excerpt = excerpt;
-    post.content = content;
-    post.featuredImageUrl = featuredImageUrl;
-    post.category = category;
+    // checking quiz status.
+    if (fetchedQuiz.status) {
+      const error = new Error(
+        'Quiz is already active. It can not be updated now'
+      );
+      error.statusCode = 403;
+      throw error;
+    }
 
-    const updatedPost = await post.save();
+    // updating the quiz
+    fetchedQuiz.title = title;
+    fetchedQuiz.questions = questions;
+    fetchedQuiz.totalMark = totalMark;
+    fetchedQuiz.startTime = startTime;
+    fetchedQuiz.endTime = endTime;
+    fetchedQuiz.duration = duration;
 
-    res.status(200).json({ message: 'Post updated!', post: updatedPost });
+    const saveUpdatedQuiz = await fetchedQuiz.save();
+
+    res.status(200).json({ message: 'Quiz updated!', quiz: saveUpdatedQuiz });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -128,36 +134,32 @@ exports.updatePost = async (req, res, next) => {
   }
 };
 
-exports.deletePost = async (req, res, next) => {
-  const postId = req.params.postId;
+exports.deleteQuiz = async (req, res, next) => {
+  const quizId = req.params.quizId;
 
   try {
-    const post = await Post.findById(postId);
+    const fetchedQuiz = await Quiz.findById(quizId);
 
-    if (!post) {
-      const error = new Error('Could not find post.');
+    if (!fetchedQuiz) {
+      const error = new Error('Could not find the Quiz.');
       error.statusCode = 404;
       throw error;
     }
 
     // Checks author permission
-    if (post.author.toString() !== req.userId) {
+    if (fetchedQuiz.teacher.toString() !== req.userId) {
       const error = new Error('Not authorized!');
       error.statusCode = 403;
       throw error;
     }
-    const removedPost = await Post.findByIdAndRemove(postId);
-    const user = await User.findById(req.userId);
+    const removedQuiz = await Quiz.findByIdAndRemove(quizId);
 
-    // removing post id from user db
-    const index = user.posts.indexOf(postId);
-    if (index > -1) {
-      // only splice array when item is found
-      user.posts.splice(index, 1); // 2nd parameter means remove one item only
-    }
+    const quizIdObj = mongoose.Types.ObjectId(quizId);
+    // Deleting result
+    // TODO: check this later
+    const deletedResults = await Result.deleteMany({ quizId: quizIdObj });
 
-    const updateUser = await user.save();
-    res.status(200).json({ message: 'post deleted' });
+    res.status(200).json({ message: 'quiz and results deleted', removedQuiz: removedQuiz, removedResults: deletedResults });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -166,7 +168,8 @@ exports.deletePost = async (req, res, next) => {
   }
 };
 
-exports.postComment = async (req, res, next) => {
+
+exports.postResult = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error('Validation failed, entered data is incorrect.');
@@ -174,108 +177,32 @@ exports.postComment = async (req, res, next) => {
     throw error;
   }
 
-  const { postId, comment } = req.body;
+  const quizId = req.body.quizId;
+  const obtainedMark = req.body.obtainedMark;
+
+  const quizIdObj = mongoose.Types.ObjectId(quizId);
 
   try {
-    const post = await Post.findByIdAndUpdate(
-      postId,
-      {
-        $push: {
-          comments: { userId: req.userId, comment: comment, time: new Date() },
-        },
-      },
-      { new: true }
-    );
+    // Check if same user is posting multiple result on same quiz
 
-    res.status(200).json({ message: 'Comment Added!', post: post });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
+    const duplicateResult = await Result.findOne({ userId: mongoose.Types.ObjectId(req.userId), quizId: quizIdObj})
 
-exports.upvotePost = async (req, res, next) => {
-  const postId = req.body.postId;
-  const userId = req.userId;
-  const errors = validationResult(req);
-  let voteResult;
-
-  if (!errors.isEmpty()) {
-    const error = new Error('Validation failed, entered data is incorrect.');
-    error.statusCode = 422;
-    throw error;
-  }
-
-  try {
-    const post = await Post.findById(postId);
-    if (!post) {
-      const error = new Error('Could not find post.');
-      error.statusCode = 404;
+    if(duplicateResult) {
+      const error = new Error('User already uploaded a result in this quiz');
+      error.statusCode = 422;
       throw error;
     }
 
-    let votedUser;
-
-    post.votedUsers.forEach((element) => {
-      if (element.userId === userId) {
-        votedUser = userId;
-        return;
-      }
+    const result = new Result({
+      userId: req.userId,
+      quizId: quizIdObj,
+      obtainedMark: obtainedMark
     });
 
-    // if user has a vote
-    if (votedUser) {
-      const upvoteExist = await Post.findOne({
-        votedUsers: { $elemMatch: { userId: userId, voteType: 'upvote' } },
-      }).select('votedUsers');
+    await result.save();
 
-      // if User Already has upvote
-      if (upvoteExist) {
-        voteResult = await Post.findByIdAndUpdate(
-          postId,
-          {
-            $pull: { votedUsers: { userId: userId, voteType: 'upvote' } },
-            $inc: { upvoteCount: -1 },
-          },
-          { new: true }
-        );
-        return res.status(200).json({
-          message: 'vote removed',
-          voteResult,
-          upvoteCount: voteResult.upvoteCount,
-          downvoteCount: voteResult.downvoteCount,
-          voteRemove: true,
-        });
-      } else {
-        // user has downvote. so we change votetype to upvote and increment upvote count and decrement downvote count
-        voteResult = await Post.findOneAndUpdate(
-          { votedUsers: { $elemMatch: { userId: userId } } },
-          {
-            $set: { 'votedUsers.$.voteType': 'upvote' },
-            $inc: { upvoteCount: 1, downvoteCount: -1 },
-          },
-          { new: true }
-        );
-      }
-    } else {
-      // user doesn't have a vote
-      voteResult = await Post.findByIdAndUpdate(
-        postId,
-        {
-          $push: { votedUsers: { userId: userId, voteType: 'upvote' } },
-          $inc: { upvoteCount: 1 },
-        },
-        { new: true }
-      );
-    }
-    res.status(200).json({
-      message: 'vote updated',
-      voteResult,
-      upvoteCount: voteResult.upvoteCount,
-      downvoteCount: voteResult.downvoteCount,
-      voteRemove: false,
+    res.status(201).json({
+      message: 'Result posted successfully!',
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -285,86 +212,33 @@ exports.upvotePost = async (req, res, next) => {
   }
 };
 
-exports.downvotePost = async (req, res, next) => {
-  const postId = req.body.postId;
-  const userId = req.userId;
-  const errors = validationResult(req);
-  let voteResult;
 
-  if (!errors.isEmpty()) {
-    const error = new Error('Validation failed, entered data is incorrect.');
-    error.statusCode = 422;
-    throw error;
+exports.getResultsByUser = async (req, res, next) => {
+  try {
+    const fetchResults = await Result.find({ userId: mongoose.Types.ObjectId(req.userId) })
+
+    res.status(200).json({
+      message: 'Fetched results successfully.',
+      results: fetchResults,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
   }
+};
+
+
+exports.fetchResultsByQuiz = async (req, res, next) => {
+  const quizId = req.body.quizId;
 
   try {
-    const post = await Post.findById(postId);
-    if (!post) {
-      const error = new Error('Could not find post.');
-      error.statusCode = 404;
-      throw error;
-    }
+    const fetchResults = await Result.find({ quizId: mongoose.Types.ObjectId(quizId) })
 
-    let votedUser;
-
-    post.votedUsers.forEach((element) => {
-      if (element.userId === userId) {
-        votedUser = userId;
-        return;
-      }
-    });
-
-    // if user has a vote
-    if (votedUser) {
-      const downvoteExist = await Post.findOne({
-        votedUsers: { $elemMatch: { userId: userId, voteType: 'downvote' } },
-      }).select('votedUsers');
-
-      // if User Already has upvote
-      if (downvoteExist) {
-        voteResult = await Post.findByIdAndUpdate(
-          postId,
-          {
-            $pull: { votedUsers: { userId: userId, voteType: 'downvote' } },
-            $inc: { downvoteCount: -1 },
-          },
-          { new: true }
-        );
-        return res.status(200).json({
-          message: 'downvote removed',
-          voteResult,
-          upvoteCount: voteResult.upvoteCount,
-          downvoteCount: voteResult.downvoteCount,
-          voteRemove: true,
-        });
-      } else {
-        // user has upvote. so we change votetype to downvote and increment downvote count and decrement upvote count
-        voteResult = await Post.findOneAndUpdate(
-          { votedUsers: { $elemMatch: { userId: userId } } },
-          {
-            $set: { 'votedUsers.$.voteType': 'downvote' },
-            $inc: { upvoteCount: -1, downvoteCount: 1 },
-          },
-          { new: true }
-        );
-      }
-    } else {
-      // user doesn't have a vote
-      voteResult = await Post.findByIdAndUpdate(
-        postId,
-        {
-          $push: { votedUsers: { userId: userId, voteType: 'downvote' } },
-          $inc: { downvoteCount: 1 },
-        },
-        { new: true }
-      );
-    }
     res.status(200).json({
-      message: 'vote updated',
-      voteResult,
-      upvoteCount: voteResult.upvoteCount,
-      downvoteCount: voteResult.downvoteCount,
-      voteRemove: false,
+      message: 'Fetched results successfully.',
+      results: fetchResults,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -373,3 +247,26 @@ exports.downvotePost = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.fetchUserResultByQuiz = async (req, res, next) => {
+  const quizId = req.body.quizId;
+
+  try {
+    const fetchResults = await Result.find({ quizId: mongoose.Types.ObjectId(quizId), userId: mongoose.Types.ObjectId(req.userId) })
+
+    res.status(200).json({
+      message: 'Fetched user results by quiz successfully.',
+      results: fetchResults,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+
+
+
+

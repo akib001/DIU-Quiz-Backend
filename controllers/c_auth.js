@@ -183,7 +183,7 @@ exports.adminLogin = async (req, res, next) => {
         email: loadedAdmin.email,
         userId: loadedAdmin._id.toString(),
         password: password,
-        role: 'user'
+        role: 'admin'
       },
       process.env.accessTokenSecret,
       { expiresIn: '24h' }

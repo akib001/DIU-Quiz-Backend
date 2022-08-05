@@ -46,10 +46,9 @@ const quizSchema = new Schema(
       required: true,
     },
     teacher: {
-      // type: Schema.Types.ObjectId,
-      // ref: 'User',
-      // required: true,
-      type: String
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
   },
   { timestamps: true }

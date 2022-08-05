@@ -2,48 +2,47 @@ const express = require('express');
 const { body } = require('express-validator/check');
 
 const quizController = require('../controllers/c_quiz');
-// const isAuth = require('../middleware/is-auth');
+const isAdmin = require('../middleware/is-admin');
+const isUser = require('../middleware/is-user')
 
 const router = express.Router();
 
 // POST /quiz/create-quiz  -- CreateQuiz
 router.post(
   '/create-quiz',
-  // isAuth,
+  isAdmin,
   quizController.createQuiz
 );
 
 
-// GET /feed/posts
-// router.get('/posts', quizController.getPosts);
+// GET /quiz/quizzes
+router.get('/fetch-quizzes', quizController.getquizzes);
 
 
-// // GET /feed/post/:postId -- fetch single post
-// router.get('/post/:postId', quizController.getPost);
+// GET /quiz/:quizId -- fetch single quiz
+router.get('/singleQuiz/:quizId', quizController.getQuiz);
 
 
-// // PUT /feed/post/:postId
-// router.put(
-//   '/post/:postId',
-//   isAuth,
-//   [
-//     body('title')
-//       .trim()
-//       .isLength({ min: 5 }),
-//     body('content')
-//       .trim()
-//       .isLength({ min: 5 })
-//   ],
-//   quizController.updatePost
-// );
+// PUT /quiz/update/:quizId
+router.put(
+  '/update/:quizId',
+  isAdmin,
+  quizController.updateQuiz
+);
 
-// router.delete('/post/:postId', isAuth, quizController.deletePost);
+// DELETE /quiz/delete/:quizId
+router.delete('/delete/:quizId', isAdmin, quizController.deleteQuiz);
 
-// // POST /feed/post-comment
-// router.post('/post-comment', isAuth, quizController.postComment);
+// POST /quiz/post-result
+router.post('/post-result', isUser, quizController.postResult);
 
-// router.post('/post/upvote', isAuth, quizController.upvotePost);
+// GET /quiz/fetch-results/userId
+router.get('/fetch-results/userId', isUser, quizController.getResultsByUser);
 
-// router.post('/post/downvote', isAuth, quizController.downvotePost);
+// POST /quiz/fetch-results/quizId
+router.post('/fetch-results/quizId', isAdmin, quizController.fetchResultsByQuiz);
+
+// POST /quiz/fetch-user-result/quizId
+router.post('/fetch-user-result/quizId', isUser, quizController.fetchUserResultByQuiz);
 
 module.exports = router;
