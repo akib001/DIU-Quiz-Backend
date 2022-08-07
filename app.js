@@ -35,7 +35,7 @@ app.use((error, req, res, next) => {
 
 mongoose
   .connect(
-    `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASS}@node-tutorial.ps5lz.mongodb.net/diuQuiz?retryWrites=true`, { useNewUrlParser: true }
+    `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASS}@node-tutorial.ps5lz.mongodb.net/diuQuiz?retryWrites=true`, { useNewUrlParser: true },
   )
   .then(result => {
     app.listen(process.env.PORT || 8080);
