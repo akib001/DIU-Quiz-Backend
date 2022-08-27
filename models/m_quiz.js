@@ -15,16 +15,26 @@ const quizSchema = new Schema(
         mark: {
           type: Number
         },
-        answerOptions: [
-          {
-            answerText: {
-              type: String,
-            },
-            isCorrect: {
-              type: Boolean,
-            },
-          },
-        ],
+        answer1: {
+          type: String,
+          required: true
+        },
+        answer2: {
+          type: String,
+          required: true
+        },
+        answer3: {
+          type: String,
+          required: true
+        },
+        answer4: {
+          type: String,
+          required: true
+        },
+        correctAnswer: {
+          type: String,
+          required: true
+        }
       },
     ],
     totalMark: {
@@ -53,7 +63,5 @@ const quizSchema = new Schema(
   },
   { timestamps: true }
 );
-
-// postSchema.set('toJSON', { virtuals: true });
 
 module.exports = mongoose.model('Quiz', quizSchema);
