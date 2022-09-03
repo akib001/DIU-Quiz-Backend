@@ -77,6 +77,109 @@ exports.getQuiz = async (req, res, next) => {
   }
 };
 
+exports.getAvailableQuizzes = async (req, res, next) => {
+  try {
+    const quizzes = await Quiz.find().populate({
+      path: 'teacher',
+      select: 'name',
+    });
+
+    const allResults = await Result.find();
+
+    if (!allResults) {
+      const error = new Error('Could not find any results');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let availableQuizzes = [];
+
+    quizzes.map((item, index) => {
+      if (!item.status) {
+        return;
+      }
+
+      let duplicateAttempt;
+      allResults.map((result, i) => {
+        if (
+          result.userId == req.userId &&
+          result.quizId.toString() == item._id
+        ) {
+          duplicateAttempt = true;
+        }
+      });
+
+      if (item.status && !duplicateAttempt) {
+        availableQuizzes.push(item);
+      }
+    });
+
+    res.status(200).json({
+      message: 'Fetched quizzes successfully.',
+      availableQuizzes,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+
+exports.getAvailableSingleQuiz = async (req, res, next) => {
+  const quizId = req.params.quizId;
+
+  try {
+    const quizzes = await Quiz.find().populate({
+      path: 'teacher',
+      select: 'name',
+    });
+
+    const allResults = await Result.find();
+
+    if (!allResults) {
+      const error = new Error('Could not find any results');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let availableQuizzes = [];
+
+    quizzes.map((item, index) => {
+      if (!item.status) {
+        return;
+      }
+
+      let duplicateAttempt;
+      allResults.map((result, i) => {
+        if (
+          result.userId == req.userId &&
+          result.quizId.toString() == item._id
+        ) {
+          duplicateAttempt = true;
+        }
+      });
+
+      if (item.status && !duplicateAttempt) {
+        availableQuizzes.push(item);
+      }
+    });
+
+    const availableSingleQuiz = availableQuizzes.filter((quiz) => quiz._id == quizId);
+
+    res.status(200).json({
+      message: 'Fetched quizzes successfully.',
+      quiz: availableSingleQuiz,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
 exports.updateQuiz = async (req, res, next) => {
   const quizId = req.params.quizId;
 
@@ -122,6 +225,7 @@ exports.updateQuiz = async (req, res, next) => {
     fetchedQuiz.startTime = startTime;
     fetchedQuiz.endTime = endTime;
     fetchedQuiz.duration = duration;
+    fetchedQuiz.status = status;
 
     const saveUpdatedQuiz = await fetchedQuiz.save();
 
@@ -159,7 +263,11 @@ exports.deleteQuiz = async (req, res, next) => {
     // TODO: check this later
     const deletedResults = await Result.deleteMany({ quizId: quizIdObj });
 
-    res.status(200).json({ message: 'quiz and results deleted', removedQuiz: removedQuiz, removedResults: deletedResults });
+    res.status(200).json({
+      message: 'quiz and results deleted',
+      removedQuiz: removedQuiz,
+      removedResults: deletedResults,
+    });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -168,8 +276,7 @@ exports.deleteQuiz = async (req, res, next) => {
   }
 };
 
-
-exports.postResult = async (req, res, next) => {
+exports.attemptQuiz = async (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = new Error('Validation failed, entered data is incorrect.');
@@ -177,32 +284,69 @@ exports.postResult = async (req, res, next) => {
     throw error;
   }
 
-  const quizId = req.body.quizId;
-  const obtainedMark = req.body.obtainedMark;
+  const { quizId, answers, duration } = req.body;
 
   const quizIdObj = mongoose.Types.ObjectId(quizId);
 
   try {
     // Check if same user is posting multiple result on same quiz
 
-    const duplicateResult = await Result.findOne({ userId: mongoose.Types.ObjectId(req.userId), quizId: quizIdObj})
+    const duplicateResult = await Result.findOne({
+      userId: mongoose.Types.ObjectId(req.userId),
+      quizId: quizIdObj,
+    });
 
-    if(duplicateResult) {
+    if (duplicateResult) {
       const error = new Error('User already uploaded a result in this quiz');
       error.statusCode = 422;
       throw error;
     }
 
-    const result = new Result({
-      userId: req.userId,
-      quizId: quizIdObj,
-      obtainedMark: obtainedMark
+    const attemptedQuiz = await Quiz.findById(quizId);
+    if (!attemptedQuiz) {
+      const error = new Error(
+        'Could not find the quiz. Or Teacher deleted the quiz'
+      );
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let resultAnswers = [];
+    let obtainedMark = 0;
+
+    attemptedQuiz?.questions.map((item, i) => {
+      let userAnswer = answers[i].answer;
+      let result = 0;
+      if (item[item.correctAnswer] == userAnswer) {
+        result = item.mark;
+      }
+      resultAnswers.push({
+        questionText: item.questionText,
+        answer1: item.answer1,
+        answer2: item.answer2,
+        answer3: item.answer3,
+        answer4: item.answer4,
+        mark: item.mark,
+        correctAnswer: item.correctAnswer,
+        result,
+        userAnswer,
+      });
+      obtainedMark += result;
     });
 
-    await result.save();
+    const resultObj = new Result({
+      userId: req.userId,
+      quizId: quizIdObj,
+      obtainedMark: obtainedMark,
+      answerScript: resultAnswers,
+      duration,
+    });
+
+    await resultObj.save();
 
     res.status(201).json({
       message: 'Result posted successfully!',
+      results: resultObj,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -212,10 +356,11 @@ exports.postResult = async (req, res, next) => {
   }
 };
 
-
 exports.getResultsByUser = async (req, res, next) => {
   try {
-    const fetchResults = await Result.find({ userId: mongoose.Types.ObjectId(req.userId) })
+    const fetchResults = await Result.find({
+      userId: mongoose.Types.ObjectId(req.userId),
+    });
 
     res.status(200).json({
       message: 'Fetched results successfully.',
@@ -229,12 +374,13 @@ exports.getResultsByUser = async (req, res, next) => {
   }
 };
 
-
 exports.fetchResultsByQuiz = async (req, res, next) => {
   const quizId = req.body.quizId;
 
   try {
-    const fetchResults = await Result.find({ quizId: mongoose.Types.ObjectId(quizId) })
+    const fetchResults = await Result.find({
+      quizId: mongoose.Types.ObjectId(quizId),
+    });
 
     res.status(200).json({
       message: 'Fetched results successfully.',
@@ -249,10 +395,13 @@ exports.fetchResultsByQuiz = async (req, res, next) => {
 };
 
 exports.fetchUserResultByQuiz = async (req, res, next) => {
-  const quizId = req.body.quizId;
+  const quizId = req.params.quizId;
 
   try {
-    const fetchResults = await Result.find({ quizId: mongoose.Types.ObjectId(quizId), userId: mongoose.Types.ObjectId(req.userId) })
+    const fetchResults = await Result.find({
+      quizId: mongoose.Types.ObjectId(quizId),
+      userId: mongoose.Types.ObjectId(req.userId),
+    });
 
     res.status(200).json({
       message: 'Fetched user results by quiz successfully.',
@@ -265,8 +414,3 @@ exports.fetchUserResultByQuiz = async (req, res, next) => {
     next(err);
   }
 };
-
-
-
-
-

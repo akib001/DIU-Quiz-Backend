@@ -22,6 +22,12 @@ router.get('/fetch-quizzes', quizController.getquizzes);
 // GET /quiz/:quizId -- fetch single quiz
 router.get('/singleQuiz/:quizId', quizController.getQuiz);
 
+// GET /quiz/available-quizzes
+router.get('/available-quizzes', isUser, quizController.getAvailableQuizzes);
+
+// GET /quiz/available-single-quiz
+router.get('/available-single-quiz/:quizId', isUser, quizController.getAvailableSingleQuiz);
+
 
 // PUT /quiz/update/:quizId
 router.put(
@@ -34,7 +40,7 @@ router.put(
 router.delete('/delete/:quizId', isAdmin, quizController.deleteQuiz);
 
 // POST /quiz/post-result
-router.post('/post-result', isUser, quizController.postResult);
+// router.post('/post-result', isUser, quizController.postResult);
 
 // GET /quiz/fetch-results/userId
 router.get('/fetch-results/userId', isUser, quizController.getResultsByUser);
@@ -42,7 +48,10 @@ router.get('/fetch-results/userId', isUser, quizController.getResultsByUser);
 // POST /quiz/fetch-results/quizId
 router.post('/fetch-results/quizId', isAdmin, quizController.fetchResultsByQuiz);
 
-// POST /quiz/fetch-user-result/quizId
-router.post('/fetch-user-result/quizId', isUser, quizController.fetchUserResultByQuiz);
+// GET /quiz/fetch-user-result/:quizId
+router.get('/fetch-user-result/:quizId', isUser, quizController.fetchUserResultByQuiz);
+
+// POST /quiz/attempt-quiz
+router.post('/attempt-quiz', isUser, quizController.attemptQuiz);
 
 module.exports = router;
