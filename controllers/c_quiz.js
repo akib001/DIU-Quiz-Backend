@@ -334,12 +334,16 @@ exports.attemptQuiz = async (req, res, next) => {
       obtainedMark += result;
     });
 
+    console.log('obtained mark', obtainedMark);
+
     const resultObj = new Result({
       userId: req.userId,
       quizId: quizIdObj,
       obtainedMark: obtainedMark,
       answerScript: resultAnswers,
       duration,
+      title: attemptedQuiz.title,
+      totalMark: attemptedQuiz.totalMark
     });
 
     await resultObj.save();

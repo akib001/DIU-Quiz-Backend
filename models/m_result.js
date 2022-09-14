@@ -16,6 +16,14 @@ const resultSchema = new Schema({
     type: Number,
     required: true,
   }, 
+  title: {
+    type: String,
+    required: true,
+  }, 
+  totalMark: {
+    type: Number,
+    required: true,
+  },
   answerScript: [
     {
       questionText: {
