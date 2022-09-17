@@ -42,11 +42,11 @@ router.delete('/delete/:quizId', isAdmin, quizController.deleteQuiz);
 // POST /quiz/post-result
 // router.post('/post-result', isUser, quizController.postResult);
 
-// GET /quiz/fetch-results/userId
-router.get('/fetch-results/userId', isUser, quizController.getResultsByUser);
+// GET /quiz/fetch-results/user/:userId
+router.get('/fetch-results/user/:userId', isUser, quizController.getResultsByUser);
 
-// POST /quiz/fetch-results/quizId
-router.post('/fetch-results/quizId', isAdmin, quizController.fetchResultsByQuiz);
+// POST /quiz/fetch-results/quiz/:quizId
+router.get('/fetch-results/quiz/:quizId', isAdmin, quizController.fetchResultsByQuiz);
 
 // GET /quiz/fetch-user-result/:quizId
 router.get('/fetch-user-result/:quizId', isUser, quizController.fetchUserResultByQuiz);

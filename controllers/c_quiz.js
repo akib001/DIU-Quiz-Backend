@@ -363,7 +363,10 @@ exports.attemptQuiz = async (req, res, next) => {
 exports.getResultsByUser = async (req, res, next) => {
   try {
     const fetchResults = await Result.find({
-      userId: mongoose.Types.ObjectId(req.userId),
+      userId: mongoose.Types.ObjectId(req.userId)
+    }).populate({
+      path: 'quizId',
+      populate: { path: 'teacher', select: 'name' }
     });
 
     res.status(200).json({
@@ -379,11 +382,14 @@ exports.getResultsByUser = async (req, res, next) => {
 };
 
 exports.fetchResultsByQuiz = async (req, res, next) => {
-  const quizId = req.body.quizId;
-
+  const quizId = req.params.quizId;
+  console.log('server hitttttt');
   try {
     const fetchResults = await Result.find({
-      quizId: mongoose.Types.ObjectId(quizId),
+      quizId: mongoose.Types.ObjectId(quizId)
+    }).populate({
+      path: 'quizId',
+      populate: { path: 'teacher', select: 'name' }
     });
 
     res.status(200).json({

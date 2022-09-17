@@ -91,6 +91,7 @@ exports.userLogin = async (req, res, next) => {
     );
     res.status(200).json({
       token: token,
+      userId: loadedUser._id.toString(),
       name: loadedUser.name,
       email: email,
       role: 'user'
@@ -191,6 +192,7 @@ exports.adminLogin = async (req, res, next) => {
     );
     res.status(200).json({
       token: token,
+      userId: loadedAdmin._id.toString(),
       name: loadedAdmin.name,
       email: email,
       role: 'admin'
