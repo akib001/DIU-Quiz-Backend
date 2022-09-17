@@ -383,7 +383,6 @@ exports.getResultsByUser = async (req, res, next) => {
 
 exports.fetchResultsByQuiz = async (req, res, next) => {
   const quizId = req.params.quizId;
-  console.log('server hitttttt');
   try {
     const fetchResults = await Result.find({
       quizId: mongoose.Types.ObjectId(quizId)
