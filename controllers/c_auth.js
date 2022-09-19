@@ -69,9 +69,11 @@ exports.userLogin = async (req, res, next) => {
       throw error;
     }
 
-
     loadedUser = fetchedUser;
-    const passwordMatched = await bcrypt.compare(password, fetchedUser.password);
+    const passwordMatched = await bcrypt.compare(
+      password,
+      fetchedUser.password
+    );
 
     if (!passwordMatched) {
       const error = new Error('Wrong password!');
@@ -83,24 +85,28 @@ exports.userLogin = async (req, res, next) => {
       {
         email: loadedUser.email,
         userId: loadedUser._id.toString(),
+        name: loadedUser.name,
         // password: password,
-        role: 'user'
+        role: 'user',
       },
       process.env.accessTokenSecret,
       { expiresIn: '24h' }
     );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    }).status(200).json({
-      token: token,
-      userId: loadedUser._id.toString(),
-      name: loadedUser.name,
-      email: email,
-      role: 'user'
-    });
+    res
+      .cookie('token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+      })
+      .status(200)
+      .json({
+        token: token,
+        userId: loadedUser._id.toString(),
+        name: loadedUser.name,
+        email: email,
+        role: 'user',
+      });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -109,6 +115,17 @@ exports.userLogin = async (req, res, next) => {
   }
 };
 
+exports.userLogout = async (req, res, next) => {
+  try {
+    res.clearCookie('token');
+    res.status(201).json({ message: 'User Logout Successfully', logout: true });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
 
 exports.adminSignup = async (req, res, next) => {
   const errors = validationResult(req);
@@ -122,41 +139,40 @@ exports.adminSignup = async (req, res, next) => {
   const { email, password, name, role } = req.body;
 
   try {
-  const fetchedUser = await User.findOne({ email: email });
+    const fetchedUser = await User.findOne({ email: email });
 
-  // if E-Mail address already exists!
-  if (fetchedUser) {
+    // if E-Mail address already exists!
+    if (fetchedUser) {
       if (fetchedUser.role !== 'admin') {
         const error = new Error('E-Mail address already exists in user role! ');
         throw error;
-        }
+      }
 
-        const error = new Error('E-Mail address already exists in admin role! ');
-        error.statusCode = 401;
-        throw error;
+      const error = new Error('E-Mail address already exists in admin role! ');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // If no admin found with same email
+    const hashedpw = await bcrypt.hash(password, 12);
+
+    const newAdmin = new User({
+      email: email,
+      password: hashedpw,
+      name: name,
+      role: role,
+    });
+
+    await newAdmin.save();
+
+    res.status(201).json({ message: 'Admin created!' });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
   }
-
-  // If no admin found with same email
-  const hashedpw = await bcrypt.hash(password, 12);
-
-  const newAdmin = new User({
-    email: email,
-    password: hashedpw,
-    name: name,
-    role: role,
-  });
-
-  await newAdmin.save();
-
-  res.status(201).json({ message: 'Admin created!' });
-} catch (err) {
-  if (!err.statusCode) {
-    err.statusCode = 500;
-  }
-  next(err);
-}
 };
-
 
 exports.adminLogin = async (req, res, next) => {
   const { email, password, role } = req.body;
@@ -170,14 +186,17 @@ exports.adminLogin = async (req, res, next) => {
       throw error;
     }
 
-    if(role == 'user') {
-      const error = new Error('You don\'t have admin role');
+    if (role == 'user') {
+      const error = new Error("You don't have admin role");
       error.statusCode = 401;
       throw error;
     }
 
     loadedAdmin = fetchedAdmin;
-    const passwordMatched = await bcrypt.compare(password, fetchedAdmin.password);
+    const passwordMatched = await bcrypt.compare(
+      password,
+      fetchedAdmin.password
+    );
 
     if (!passwordMatched) {
       const error = new Error('Wrong password!');
@@ -189,18 +208,24 @@ exports.adminLogin = async (req, res, next) => {
       {
         email: loadedAdmin.email,
         userId: loadedAdmin._id.toString(),
-        password: password,
-        role: 'admin'
+        name: loadedAdmin.name,
+        // password: password,
+        role: 'admin',
       },
       process.env.accessTokenSecret,
       { expiresIn: '24h' }
     );
-    res.status(200).json({
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+    })
+    .status(200).json({
       token: token,
       userId: loadedAdmin._id.toString(),
       name: loadedAdmin.name,
       email: email,
-      role: 'admin'
+      role: 'admin',
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -216,24 +241,20 @@ exports.checkAuth = async (req, res, next) => {
   let role = false;
   try {
     const token = req.cookies.token;
-    if (!token) return res.status(403).json({message: 'Not authenticated', role });
+    if (!token)
+      return res.status(403).json({ message: 'Not authenticated', role, email: null, userId: null, name: null });
 
     decodedToken = jwt.verify(token, process.env.accessTokenSecret);
 
-    // if(decodedToken.role == 'user') {
-    //   isUser = true;
-    // } else if (decodedToken.role == 'admin') {
-    //   isAdmin = true;
-    // }
+    console.log(decodedToken)
+   
     role = decodedToken.role;
 
-    res.status(200).json({message: 'Authenticated Successfully', role});
+    res.status(200).json({ message: 'Authenticated Successfully', role, email: decodedToken.email, userId: decodedToken.userId, name: decodedToken.name });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 403;
     }
     next(err);
   }
-}  
-
-
+};

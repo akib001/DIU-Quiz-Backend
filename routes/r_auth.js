@@ -1,5 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator/check');
+const isAdmin = require('../middleware/is-admin');
+const isUser = require('../middleware/is-user')
 
 const authController = require('../controllers/c_auth');
 
@@ -27,6 +29,9 @@ router.put('/user/signup', signupValidation, authController.userSignup);
 
 // Post => User Login
 router.post('/user/login', authController.userLogin);
+
+// GET => User Logout
+router.get('/user/logout', isUser, authController.userLogout);
 
 // Put => Admin signup
 router.put('/admin/signup', signupValidation, authController.adminSignup);
