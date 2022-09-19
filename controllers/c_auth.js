@@ -83,13 +83,18 @@ exports.userLogin = async (req, res, next) => {
       {
         email: loadedUser.email,
         userId: loadedUser._id.toString(),
-        password: password,
+        // password: password,
         role: 'user'
       },
       process.env.accessTokenSecret,
       { expiresIn: '24h' }
     );
-    res.status(200).json({
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+    }).status(200).json({
       token: token,
       userId: loadedUser._id.toString(),
       name: loadedUser.name,
@@ -204,5 +209,31 @@ exports.adminLogin = async (req, res, next) => {
     next(err);
   }
 };
+
+// check Token from cookie
+exports.checkAuth = async (req, res, next) => {
+  let decodedToken;
+  let role = false;
+  try {
+    const token = req.cookies.token;
+    if (!token) return res.status(403).json({message: 'Not authenticated', role });
+
+    decodedToken = jwt.verify(token, process.env.accessTokenSecret);
+
+    // if(decodedToken.role == 'user') {
+    //   isUser = true;
+    // } else if (decodedToken.role == 'admin') {
+    //   isAdmin = true;
+    // }
+    role = decodedToken.role;
+
+    res.status(200).json({message: 'Authenticated Successfully', role});
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 403;
+    }
+    next(err);
+  }
+}  
 
 

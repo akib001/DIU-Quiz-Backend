@@ -34,4 +34,7 @@ router.put('/admin/signup', signupValidation, authController.adminSignup);
 // Post => Admin Login
 router.post('/admin/login', authController.adminLogin);
 
+// GET => auth/check-auth
+router.get('/check-auth', authController.checkAuth)
+
 module.exports = router;
