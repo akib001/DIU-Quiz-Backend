@@ -60,7 +60,6 @@ exports.createQuiz = async (req, res, next) => {
 
 exports.getQuiz = async (req, res, next) => {
   const quizId = req.params.quizId;
-  console.log(quizId);
   try {
     const quiz = await Quiz.findById(quizId);
     if (!quiz) {
@@ -333,8 +332,6 @@ exports.attemptQuiz = async (req, res, next) => {
       });
       obtainedMark += result;
     });
-
-    console.log('obtained mark', obtainedMark);
 
     const resultObj = new Result({
       userId: req.userId,

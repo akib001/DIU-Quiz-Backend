@@ -21,7 +21,6 @@ exports.userSignup = async (req, res, next) => {
 
     // if E-Mail address already exists!
     if (user) {
-      console.log(user);
       if (user.role == 'admin') {
         const error = new Error(
           'You are already admin. Please login with your old credentials'
