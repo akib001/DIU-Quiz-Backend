@@ -17,7 +17,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: 'https://diu-quiz.vercel.app/',
+    origin: ['https://diu-quiz.vercel.app', 'http://localhost:3000'],
     methods: ['GET','POST','DELETE','UPDATE','PUT','PATCH'],
     credentials: true,
   })
