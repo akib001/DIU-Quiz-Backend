@@ -174,7 +174,7 @@ exports.adminSignup = async (req, res, next) => {
 };
 
 exports.adminLogin = async (req, res, next) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
   let loadedAdmin;
 
   try {
@@ -185,7 +185,7 @@ exports.adminLogin = async (req, res, next) => {
       throw error;
     }
 
-    if (role == 'user') {
+    if (fetchedAdmin.role == 'user') {
       const error = new Error("You don't have admin role");
       error.statusCode = 401;
       throw error;

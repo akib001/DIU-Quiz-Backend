@@ -31,7 +31,7 @@ router.put('/user/signup', signupValidation, authController.userSignup);
 router.post('/user/login', authController.userLogin);
 
 // GET => User Logout
-router.get('/user/logout', isUser, authController.userLogout);
+router.get('/user/logout', authController.userLogout);
 
 // Put => Admin signup
 router.put('/admin/signup', signupValidation, authController.adminSignup);
