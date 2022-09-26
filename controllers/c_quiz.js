@@ -420,3 +420,40 @@ exports.fetchUserResultByQuiz = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getAdminStats = async (req, res, next) => {
+  const userId = req.userId;
+
+  try {
+    const fetchedQuizzes = await Quiz.find({teacher: mongoose.Types.ObjectId(req.userId)});
+
+    let quizIds = [];
+
+    (fetchedQuizzes || []).map((item) => {
+      quizIds.push(mongoose.Types.ObjectId(item._id));
+    })
+
+    const attendedStudents = await Result.find({ quizId : { $in : quizIds} });
+
+    // Total published Quizzes
+    let countActiveQuizzes = 0;
+    (fetchedQuizzes || []).map((item) => {
+      if(item.status) {
+        countActiveQuizzes++;
+      }
+    })
+    
+    res.status(200).json({
+      message: 'Fetched Statistics Successfully',
+      attendedStudents: attendedStudents.length,
+      countActiveQuizzes: countActiveQuizzes,
+      totalQuizzes: fetchedQuizzes.length
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+  
+}

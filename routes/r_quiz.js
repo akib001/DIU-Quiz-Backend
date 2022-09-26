@@ -54,4 +54,7 @@ router.get('/fetch-user-result/:quizId', isUser, quizController.fetchUserResultB
 // POST /quiz/attempt-quiz
 router.post('/attempt-quiz', isUser, quizController.attemptQuiz);
 
+// POST /quiz/admin/statistics
+router.get('/admin/statistics', isAdmin, quizController.getAdminStats);
+
 module.exports = router;
