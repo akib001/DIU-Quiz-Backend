@@ -16,8 +16,10 @@ router.post(
 
 
 // GET /quiz/quizzes
-router.get('/fetch-quizzes', quizController.getquizzes);
+router.get('/fetch-quizzes', quizController.getQuizzes);
 
+// GET /quiz/admin/quizzes
+router.get('/admin/fetch-quizzes', isAdmin, quizController.getAdminQuizzes);
 
 // GET /quiz/:quizId -- fetch single quiz
 router.get('/singleQuiz/:quizId', quizController.getQuiz);

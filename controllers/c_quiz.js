@@ -4,9 +4,30 @@ const Quiz = require('../models/m_quiz');
 const User = require('../models/m_user');
 const Result = require('../models/m_result');
 
-exports.getquizzes = async (req, res, next) => {
+exports.getQuizzes = async (req, res, next) => {
   try {
     const quizzes = await Quiz.find().populate({
+      path: 'teacher',
+      select: 'name',
+    });
+    res.status(200).json({
+      message: 'Fetched quizzes successfully.',
+      quiz: quizzes,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+
+exports.getAdminQuizzes = async (req, res, next) => {
+  const userId = mongoose.Types.ObjectId(req.userId);
+
+  try {
+    const quizzes = await Quiz.find({teacher: userId}).populate({
       path: 'teacher',
       select: 'name',
     });
