@@ -22,12 +22,11 @@ exports.getQuizzes = async (req, res, next) => {
   }
 };
 
-
 exports.getAdminQuizzes = async (req, res, next) => {
   const userId = mongoose.Types.ObjectId(req.userId);
 
   try {
-    const quizzes = await Quiz.find({teacher: userId}).populate({
+    const quizzes = await Quiz.find({ teacher: userId }).populate({
       path: 'teacher',
       select: 'name',
     });
@@ -146,7 +145,6 @@ exports.getAvailableQuizzes = async (req, res, next) => {
   }
 };
 
-
 exports.getAvailableSingleQuiz = async (req, res, next) => {
   const quizId = req.params.quizId;
 
@@ -186,7 +184,9 @@ exports.getAvailableSingleQuiz = async (req, res, next) => {
       }
     });
 
-    const availableSingleQuiz = availableQuizzes.filter((quiz) => quiz._id == quizId);
+    const availableSingleQuiz = availableQuizzes.filter(
+      (quiz) => quiz._id == quizId
+    );
 
     res.status(200).json({
       message: 'Fetched quizzes successfully.',
@@ -361,7 +361,7 @@ exports.attemptQuiz = async (req, res, next) => {
       answerScript: resultAnswers,
       duration,
       title: attemptedQuiz.title,
-      totalMark: attemptedQuiz.totalMark
+      totalMark: attemptedQuiz.totalMark,
     });
 
     await resultObj.save();
@@ -381,10 +381,10 @@ exports.attemptQuiz = async (req, res, next) => {
 exports.getResultsByUser = async (req, res, next) => {
   try {
     const fetchResults = await Result.find({
-      userId: mongoose.Types.ObjectId(req.userId)
+      userId: mongoose.Types.ObjectId(req.userId),
     }).populate({
       path: 'quizId',
-      populate: { path: 'teacher', select: 'name' }
+      populate: { path: 'teacher', select: 'name' },
     });
 
     res.status(200).json({
@@ -403,10 +403,10 @@ exports.fetchResultsByQuiz = async (req, res, next) => {
   const quizId = req.params.quizId;
   try {
     const fetchResults = await Result.find({
-      quizId: mongoose.Types.ObjectId(quizId)
+      quizId: mongoose.Types.ObjectId(quizId),
     }).populate({
       path: 'quizId',
-      populate: { path: 'teacher', select: 'name' }
+      populate: { path: 'teacher', select: 'name' },
     });
 
     res.status(200).json({
@@ -443,32 +443,32 @@ exports.fetchUserResultByQuiz = async (req, res, next) => {
 };
 
 exports.getAdminStats = async (req, res, next) => {
-  const userId = req.userId;
-
   try {
-    const fetchedQuizzes = await Quiz.find({teacher: mongoose.Types.ObjectId(req.userId)});
+    const fetchedQuizzes = await Quiz.find({
+      teacher: mongoose.Types.ObjectId(req.userId),
+    });
 
     let quizIds = [];
 
     (fetchedQuizzes || []).map((item) => {
       quizIds.push(mongoose.Types.ObjectId(item._id));
-    })
+    });
 
-    const attendedStudents = await Result.find({ quizId : { $in : quizIds} });
+    const attendedStudents = await Result.find({ quizId: { $in: quizIds } });
 
     // Total published Quizzes
     let countActiveQuizzes = 0;
     (fetchedQuizzes || []).map((item) => {
-      if(item.status) {
+      if (item.status) {
         countActiveQuizzes++;
       }
-    })
-    
+    });
+
     res.status(200).json({
       message: 'Fetched Statistics Successfully',
       attendedStudents: attendedStudents.length,
       countActiveQuizzes: countActiveQuizzes,
-      totalQuizzes: fetchedQuizzes.length
+      totalQuizzes: fetchedQuizzes.length,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -476,5 +476,85 @@ exports.getAdminStats = async (req, res, next) => {
     }
     next(err);
   }
+};
+
+exports.getStudents = async (req, res, next) => {
+  const userId = '630a189e819e4050a0132f2c';
+
+  try {
+    const fetchedQuizzes = await Quiz.find({
+      teacher: mongoose.Types.ObjectId(userId),
+    });
+
+    let quizIds = [];
+
+    (fetchedQuizzes || []).map((item) => {
+      quizIds.push(mongoose.Types.ObjectId(item._id));
+    });
+
+    const userResults = await Result.find({ quizId: { $in: quizIds } })
+      .populate({
+        path: 'userId',
+        select: 'name',
+      })
+      .populate({
+        path: 'quizId',
+        select: 'title',
+      });
+
+    let studentsArray = [];
+    let studentsIds = [];
+
+    userResults?.map((item, index) => {
+      const duplicateStudentIndex = studentsArray?.findIndex(
+        (element, index) => {
+          return element.userId == item?.userId?._id;
+        }
+      );
+
+      if(duplicateStudentIndex < 0) {
+
+        const studentObj = {
+          userId: item?.userId?._id,
+          name: item?.userId?.name,
+          quizzes: [
+            {
+              quizId: item?.quizId?._id,
+              quizTitle: item?.quizId?.title,
+              totalMark: item?.totalMark,
+              obtainedMark: item?.obtainedMark,
+              duration: item?.duration,
+              date: item?.updatedAt,
+            },
+          ],
+        };
   
-}
+        studentsArray.push(studentObj);
+      } else {
+        const quizObj = {
+          quizId: item?.quizId?._id,
+          quizTitle: item?.quizId?.title,
+          totalMark: item?.totalMark,
+          obtainedMark: item?.obtainedMark,
+          duration: item?.duration,
+          date: item?.updatedAt,
+        }
+
+        studentsArray[duplicateStudentIndex].quizzes?.push(quizObj);
+      }
+
+      // console.log('duplicateStudentIndex', duplicateStudentIndex);
+
+    });
+
+    res.status(200).json({
+      message: 'Fetched Students Successfully',
+      students: studentsArray,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
