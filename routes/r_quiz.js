@@ -14,7 +14,6 @@ router.post(
   quizController.createQuiz
 );
 
-
 // GET /quiz/quizzes
 router.get('/fetch-quizzes', quizController.getQuizzes);
 
@@ -58,6 +57,9 @@ router.post('/attempt-quiz', isUser, quizController.attemptQuiz);
 
 // GET /quiz/admin/statistics
 router.get('/admin/statistics', isAdmin, quizController.getAdminStats);
+
+// GET /quiz/user/statistics
+router.get('/user/statistics', isUser, quizController.getUserStats);
 
 // POST /quiz/admin/students
 router.get('/admin/students', quizController.getStudents);

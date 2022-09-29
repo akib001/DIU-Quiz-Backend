@@ -478,12 +478,72 @@ exports.getAdminStats = async (req, res, next) => {
   }
 };
 
-exports.getStudents = async (req, res, next) => {
-  const userId = '630a189e819e4050a0132f2c';
+exports.getUserStats = async (req, res, next) => {
+  try {
+    const quizzes = await Quiz.find().populate({
+      path: 'teacher',
+      select: 'name',
+    });
 
+    const allResults = await Result.find();
+
+    if (!allResults) {
+      const error = new Error('Could not find any results');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    let availableQuizzes = [];
+
+    quizzes.map((item, index) => {
+      if (!item.status) {
+        return;
+      }
+
+      let duplicateAttempt;
+      allResults.map((result, i) => {
+        if (
+          result.userId == req.userId &&
+          result.quizId.toString() == item._id
+        ) {
+          duplicateAttempt = true;
+        }
+      });
+
+      if (item.status && !duplicateAttempt) {
+        availableQuizzes.push(item);
+      }
+    });
+
+    const fetchResults = await Result.find({
+      userId: mongoose.Types.ObjectId(req.userId),
+    });
+
+    let highestMark = 0;
+    fetchResults?.forEach((item) => {
+      if (highestMark < item.obtainedMark) {
+        highestMark = item.obtainedMark;
+      }
+    });
+
+    res.status(200).json({
+      message: 'Fetched statistics successfully.',
+      totalAvailableQuizzes: availableQuizzes.length,
+      totalAttemptedQuizzes: fetchResults.length,
+      highestMark: highestMark
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getStudents = async (req, res, next) => {
   try {
     const fetchedQuizzes = await Quiz.find({
-      teacher: mongoose.Types.ObjectId(userId),
+      teacher: mongoose.Types.ObjectId(req.userId),
     });
 
     let quizIds = [];
@@ -512,8 +572,7 @@ exports.getStudents = async (req, res, next) => {
         }
       );
 
-      if(duplicateStudentIndex < 0) {
-
+      if (duplicateStudentIndex < 0) {
         const studentObj = {
           userId: item?.userId?._id,
           name: item?.userId?.name,
@@ -528,7 +587,7 @@ exports.getStudents = async (req, res, next) => {
             },
           ],
         };
-  
+
         studentsArray.push(studentObj);
       } else {
         const quizObj = {
@@ -538,13 +597,10 @@ exports.getStudents = async (req, res, next) => {
           obtainedMark: item?.obtainedMark,
           duration: item?.duration,
           date: item?.updatedAt,
-        }
+        };
 
         studentsArray[duplicateStudentIndex].quizzes?.push(quizObj);
       }
-
-      // console.log('duplicateStudentIndex', duplicateStudentIndex);
-
     });
 
     res.status(200).json({
