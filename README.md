@@ -4,7 +4,8 @@
 
 ```MONGODB_USERNAME = 'your mongodb username'
 MONGODB_PASS = 'your mongodb password'
-accessTokenSecret = 'Bcrypt.js access token secret'```
+accessTokenSecret = 'Bcrypt.js access token secret'
+```
 
 2. Install all dependencies: 
 ```npm install
