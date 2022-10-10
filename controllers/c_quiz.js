@@ -454,7 +454,56 @@ exports.getAdminStats = async (req, res, next) => {
       quizIds.push(mongoose.Types.ObjectId(item._id));
     });
 
-    const attendedStudents = await Result.find({ quizId: { $in: quizIds } });
+    const userResults = await Result.find({ quizId: { $in: quizIds } })
+      .populate({
+        path: 'userId',
+        select: 'name',
+      })
+      .populate({
+        path: 'quizId',
+        select: 'title',
+      });
+
+    let studentsArray = [];
+    let studentsIds = [];
+
+    userResults?.map((item, index) => {
+      const duplicateStudentIndex = studentsArray?.findIndex(
+        (element, index) => {
+          return element.userId == item?.userId?._id;
+        }
+      );
+
+      if (duplicateStudentIndex < 0) {
+        const studentObj = {
+          userId: item?.userId?._id,
+          name: item?.userId?.name,
+          quizzes: [
+            {
+              quizId: item?.quizId?._id,
+              quizTitle: item?.quizId?.title,
+              totalMark: item?.totalMark,
+              obtainedMark: item?.obtainedMark,
+              duration: item?.duration,
+              date: item?.updatedAt,
+            },
+          ],
+        };
+
+        studentsArray.push(studentObj);
+      } else {
+        const quizObj = {
+          quizId: item?.quizId?._id,
+          quizTitle: item?.quizId?.title,
+          totalMark: item?.totalMark,
+          obtainedMark: item?.obtainedMark,
+          duration: item?.duration,
+          date: item?.updatedAt,
+        };
+
+        studentsArray[duplicateStudentIndex].quizzes?.push(quizObj);
+      }
+    });
 
     // Total published Quizzes
     let countActiveQuizzes = 0;
@@ -466,7 +515,7 @@ exports.getAdminStats = async (req, res, next) => {
 
     res.status(200).json({
       message: 'Fetched Statistics Successfully',
-      attendedStudents: attendedStudents.length,
+      attendedStudents: studentsArray.length,
       countActiveQuizzes: countActiveQuizzes,
       totalQuizzes: fetchedQuizzes.length,
     });
@@ -606,6 +655,7 @@ exports.getStudents = async (req, res, next) => {
     res.status(200).json({
       message: 'Fetched Students Successfully',
       students: studentsArray,
+      fetchedQuizzes
     });
   } catch (err) {
     if (!err.statusCode) {

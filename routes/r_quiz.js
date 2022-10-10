@@ -62,6 +62,6 @@ router.get('/admin/statistics', isAdmin, quizController.getAdminStats);
 router.get('/user/statistics', isUser, quizController.getUserStats);
 
 // POST /quiz/admin/students
-router.get('/admin/students', quizController.getStudents);
+router.get('/admin/students', isAdmin, quizController.getStudents);
 
 module.exports = router;
