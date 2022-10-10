@@ -2,7 +2,8 @@
 
 1. Create a .env file including these credentials 
 
-```MONGODB_USERNAME = 'your mongodb username'
+```
+MONGODB_USERNAME = 'your mongodb username'
 MONGODB_PASS = 'your mongodb password'
 accessTokenSecret = 'Bcrypt.js access token secret'
 ```
