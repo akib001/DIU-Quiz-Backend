@@ -10,7 +10,7 @@ const authRoutes = require('./routes/r_auth');
 
 const app = express();
 
-
+// Implement passport oauth 2.0 authentication
 
 app.use(bodyParser.json()); // application/json
 app.use(cookieParser());

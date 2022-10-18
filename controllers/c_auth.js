@@ -238,11 +238,11 @@ exports.adminLogin = async (req, res, next) => {
 exports.checkAuth = async (req, res, next) => {
   let decodedToken;
   let role = false;
+  const token = req.cookies.token;
+  console.log('token', token);
+  if (!token)
+    return res.status(403).json({ message: 'Not authenticated', role, email: null, userId: null, name: null });
   try {
-    const token = req.cookies.token;
-    if (!token)
-      return res.status(403).json({ message: 'Not authenticated', role, email: null, userId: null, name: null });
-
     decodedToken = jwt.verify(token, process.env.accessTokenSecret);
 
     console.log(decodedToken)
