@@ -2,10 +2,13 @@ const express = require('express');
 const { body } = require('express-validator/check');
 const isAdmin = require('../middleware/is-admin');
 const isUser = require('../middleware/is-user')
+const passport = require('passport');
 
 const authController = require('../controllers/c_auth');
 
 const router = express.Router();
+
+const clientUrl = process.env.NODE_ENV === 'production' ? process.env.CLIENT_URL_PROD : process.env.CLIENT_URL_DEV;
 
 const signupValidation = [
   body('email')
@@ -41,5 +44,25 @@ router.post('/admin/login', authController.adminLogin);
 
 // GET => auth/check-auth
 router.get('/check-auth', authController.checkAuth)
+
+router.get(
+    '/google',
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+    }),
+);
+
+router.get(
+    '/google/callback',
+    passport.authenticate('google', {
+      failureRedirect: '/',
+      session: false,
+    }),
+    (req, res) => {
+      const token = req.user.generateJWT();
+      res.cookie('token', token);
+      res.redirect(clientUrl);
+    },
+);
 
 module.exports = router;
