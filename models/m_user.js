@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const userSchema = new Schema({
         provider: {
             type: String,
-            required: true,
+            default: 'local'
         },
         email: {
             type: String,
