@@ -78,9 +78,6 @@ exports.userLogin = async (req, res, next) => {
         }, process.env.accessTokenSecret, {expiresIn: '24h'});
 
         res
-            .cookie('role', 'user', {
-                httpOnly: false, secure: true, sameSite: 'none',
-            })
             .cookie('token', token, {
                 httpOnly: true, secure: true, sameSite: 'none',
             })
@@ -183,9 +180,7 @@ exports.adminLogin = async (req, res, next) => {
             email: loadedAdmin.email, userId: loadedAdmin._id.toString(), name: loadedAdmin.name, // password: password,
             role: 'admin',
         }, process.env.accessTokenSecret, {expiresIn: '24h'});
-        res.cookie('role', 'admin', {
-            httpOnly: false, secure: true, sameSite: 'none',
-        })
+        res
             .cookie('token', token, {
                 httpOnly: true, secure: true, sameSite: 'none',
             })

@@ -60,11 +60,7 @@ router.get(
     }),
     (req, res) => {
         const token = req.user.generateJWT();
-        res.cookie('role', 'user', {
-            httpOnly: false,
-            secure: true,
-            sameSite: 'none',
-        }).cookie('token', token, {
+        res.cookie('token', token, {
             httpOnly: true,
             secure: true,
             sameSite: 'none',
