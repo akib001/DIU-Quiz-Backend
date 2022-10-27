@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: ['https://diu-quiz.vercel.app', 'http://localhost:3000'],
+    origin: ['https://diu-quiz.vercel.app', 'https://diuquiz.netlify.app', 'http://localhost:3000'],
     methods: ['GET','POST','DELETE','UPDATE','PUT','PATCH'],
     credentials: true,
   })
